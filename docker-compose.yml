@@ -1,0 +1,162 @@
+version: '3.0'
+services:
+
+  smart2go-db:
+    image: postgres:v1.0
+    container_name: postgres
+    build:
+      context: ./DB
+      dockerfile: Dockerfile
+    ports:
+      - "5432:5432"
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD:  mysecretpassword
+      POSTGRES_PORT: 5432
+  
+      # - POSTGRES_MULTIPLE_DATABASES=smart2go,sadmin
+      #command: bash -c "sleep 5 "
+    #volumes:
+        #- ../create-multiple-postgresql-databases.sh:/docker-entrypoint-initdb.d
+#    -  postgres-data:/var/lib/postgres
+#    - ./dbscripts/postgres:/docker-entrypoint-initdb.d
+     
+     
+     
+    networks:
+      - S2G_NET
+        
+
+  smart2go:
+    image: be:v1.0
+    container_name: S2G_BE
+    build:
+      context: ./BE
+      dockerfile: Dockerfile
+    ports:
+      - "7085:8080"
+    environment:
+      #SPRING_DATASOURCE_URL : $SMART2GO_DB_URL
+      multitenancy.tenants0.url : jdbc:postgresql://postgres:5432/smart2go?driver=org.postgresql.Driver
+      multitenancy.tenants0.username : smart2go
+      multitenancy.tenants0.password : smart2go
+      CORE_FOUNDATION_URL : http://S2G_SA:8080/Smart2GoAdmin
+      CRM_FOUNDATION_URL : http://S2G_BE:8080/Smart2Go
+        #SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_HIBERNATE_DDL_AUTO:  update
+    networks:
+      - S2G_NET
+
+
+  smart2goadmin:
+    image: sa:v1
+    container_name: S2G_SA
+    build:
+      context: ./SA
+      dockerfile: Dockerfile
+    ports:
+      - "7088:8080"
+    environment:
+      #SPRING_DATASOURCE_URL : $SMART2GO_ADMIN_DB_URL
+      multitenancy.tenants0.url : jdbc:postgresql://postgres:5432/sadmin?driver=org.postgresql.Driver
+      multitenancy.tenants0.username: sadmin
+      multitenancy.tenants0.password: sadmin
+      #SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      CORE_FOUNDATION_URL : http://S2G_SA:8080/Smart2GoAdmin
+      CRM_FOUNDATION_URL : http://S2G_BE:8080/Smart2Go
+      SPRING_JPA_HIBERNATE_DDL_AUTO:  update
+      #volumes:
+          #- ./docker_postgres_user.sql:/scripts/docker_postgres_user.sql
+      #command: bash -c "sleep 40 && /scripts/docker_postgres_user.sql && exec myexecutable"
+    networks:
+      - S2G_NET
+
+  smart2gofront:
+    image: smart2gofront:latest
+    container_name: S2G_FE
+    build:
+      context: ./FE
+      dockerfile: Dockerfile
+    expose:
+      - "7081"
+    ports:
+      - "7081:80"
+
+  workflow:
+    image: wf:v1
+    container_name: S2G_WF
+    build:
+      context: ./WF
+      dockerfile: Dockerfile
+      #depends_on:
+        #- smart2go-db
+        #- transaction-service
+       #links:
+        #- transaction-service
+    environment:
+      #SPRING_DATASOURCE_URL : $SMART2GO_DB_URL
+      spring.datasource.url : jdbc:postgresql://postgres:5432/smart2go?driver=org.postgresql.Driver
+      spring.datasource.username : smart2go
+      spring.datasource.password : smart2go
+      CORE_FOUNDATION_URL : http://S2G_SA:8080/Smart2GoAdmin
+      CRM_FOUNDATION_URL : http://S2G_BE:8080/Smart2Go
+      spring.jpa.properties.hibernate.default_schema: public
+      spring.jpa.database: POSTGRESQL
+      #SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_HIBERNATE_DDL_AUTO:  update
+    networks:
+      - S2G_NET
+
+  schaduleEngin:
+    image: se:v1
+    container_name: S2G_SE
+    build:
+      context: ./SE
+      dockerfile: Dockerfile
+      #depends_on:
+        #- smart2go-db
+        #- transaction-service
+       #links:
+        #- transaction-service
+    environment:
+      #SPRING_DATASOURCE_URL : $SMART2GO_DB_URL
+      spring.datasource.url : jdbc:postgresql://postgres:5432/smart2go?driver=org.postgresql.Driver
+      spring.datasource.username : smart2go
+      spring.datasource.password : smart2go
+      CORE_FOUNDATION_URL : http://S2G_SA:8080/Smart2GoAdmin
+      CRM_FOUNDATION_URL : http://S2G_BE:8080/Smart2Go
+      #SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_HIBERNATE_DDL_AUTO:  update
+    networks:
+      - S2G_NET
+
+
+
+  EmailEngin:
+    image: ee:v1
+    container_name: S2G_EE
+    build:
+      context: ./EE
+      dockerfile: Dockerfile
+      #depends_on:
+        #- smart2go-db
+        #- transaction-service
+       #links:
+        #- transaction-service
+    environment:
+      #SPRING_DATASOURCE_URL : $SMART2GO_DB_URL
+      spring.datasource.url : jdbc:postgresql://postgres:5432/smart2go?driver=org.postgresql.Driver
+      spring.jpa.properties.hibernate.dialect : com.ntg.common.DBCompatibilityHelper.PostgreSQLDialectCustom
+      spring.jpa.properties.hibernate.default_schema : public
+      spring.datasource.username : smart2go
+      spring.datasource.password : smart2go
+      CORE_FOUNDATION_URL : http://S2G_SA:8080/Smart2GoAdmin
+      CRM_FOUNDATION_URL : http://S2G_BE:8080/Smart2Go
+      #SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_HIBERNATE_DDL_AUTO:  update
+    networks:
+      - S2G_NET
+
+networks:
+  S2G_NET:

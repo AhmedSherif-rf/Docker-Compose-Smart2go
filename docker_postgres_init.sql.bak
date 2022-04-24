@@ -1,0 +1,7 @@
+CREATE USER sadmin WITH PASSWORD 'sadmin';
+CREATE DATABASE sadmin OWNER sadmin;
+#GRANT ALL PRIVILEGES ON DATABASE sadmin TO sadmin;
+#GRANT ALL PRIVILEGES ON DATABASE sadmin TO smart2go;
+alter database smart2go owner to smart2go;
+alter database sadmin owner to sadmin;
+
